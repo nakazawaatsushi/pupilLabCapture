@@ -1,0 +1,10 @@
+﻿2016/10/13 17:47:59 にビルドを開始しました。
+     1>ノード 2 上のプロジェクト "C:\Users\asami\Desktop\TestCapture_for_KumadaLab\pupilLabCapture_single\pupilLabCapture\pupilLabCapture.vcxproj" (Build ターゲット)。
+     1>Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\asami\Desktop\TestCapture_for_KumadaLab\pupilLabCapture_single\x64\Release\pupilLabCapture.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:C:\opencv\build\x86\vc12\lib /LIBPATH:C:\boost_1_55_0\stage\lib /LIBPATH:C:\boost_1_55_0\libs /LIBPATH:C:\boost_1_55_0\stage\x86\lib opencv_imgproc2411.lib opencv_core2411.lib opencv_highgui2411.lib opencv_video2411.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\asami\Desktop\TestCapture_for_KumadaLab\pupilLabCapture_single\x64\Release\pupilLabCapture.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\asami\Desktop\TestCapture_for_KumadaLab\pupilLabCapture_single\x64\Release\pupilLabCapture.lib" /MACHINE:X64 x64\Release\pupilLabCapture.obj
+     1>opencv_highgui2411.lib(opencv_highgui2411.dll) : fatal error LNK1112: モジュールのコンピューターの種類 'X86' は対象コンピューターの種類 'x64' と競合しています。
+     1>プロジェクト "C:\Users\asami\Desktop\TestCapture_for_KumadaLab\pupilLabCapture_single\pupilLabCapture\pupilLabCapture.vcxproj" (Build ターゲット) のビルドが終了しました -- 失敗。
+
+ビルドに失敗しました。
+
+経過時間 00:00:00.80
