@@ -1,19 +1,35 @@
 // uEyeCaptureSingle.cpp : コンソール アプリケーションのエントリ ポイントを定義します。
 //
-#pragma comment (lib, "winmm.lib")
-
 #include <stdio.h>
 #include <time.h>
-#include <windows.h>
-#include <mmsystem.h>
-#include <direct.h>
 
-#include "opencv2\opencv.hpp"
-#include "opencv2\highgui\highgui.hpp"
+#ifdef _WIN32
+        #pragma comment (lib, "winmm.lib")
+	#include <windows.h>
+	#include <mmsystem.h>
+	#include <direct.h>
+	#include "opencv2\opencv.hpp"
+	#include "opencv2\highgui\highgui.hpp"
+	#include <crtdbg.h>
+        #include <chrono>
+#else
+   #include <opencv/cxcore.h>
+   #include <opencv2/opencv.hpp>
+   #include <opencv2/highgui/highgui.hpp>
+   #include <sys/stat.h>
+
+   typedef int INT;
+
+   typedef struct {
+     int wMonth, wDay, wHour, wMinute, wSecond, wMilliseconds;
+     struct timespec ts;
+   } SYSTEMTIME;
+
+#endif
+
 #include <sstream>
 #include <cstdlib>
-#include <crtdbg.h>
-#include <chrono>
+
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
@@ -23,35 +39,55 @@
 
 #define CAP_WAIT	10
 
-//動作未確認
-void cvRotateImage(IplImage * img){
+//
+#ifndef _WIN32
+void GetLocalTime( SYSTEMTIME *t )
+{
+  struct tm *tm;
+  char timbuf[64];
 
-	float m[6];
-    int angle = 90;
-	 IplImage* src_img = img;
-	 IplImage* dst_Img = cvCreateImage(cvSize(src_img->height, src_img->width), src_img->depth, src_img->nChannels);
-	CvMat M;
-    m[0] = (float)(cos(angle * CV_PI / 180.0));
-    m[1] = (float)(-sin(angle * CV_PI / 180.0));
-    m[2] = src_img->width*0.5;
-    m[3] = -m[1];
-    m[4] = m[0];
-    m[5] = src_img->height*0.5;
-    cvInitMatHeader(&M, 2, 3, CV_32FC1, m, CV_AUTOSTEP);
-    cvGetQuadrangleSubPix (src_img, dst_Img, &M); 
-    img = dst_Img;
+  clock_gettime(CLOCK_REALTIME, &t->ts);
+  time_t tim = t->ts.tv_sec;
+
+  tm = localtime(&tim);
+
+  t->wMonth = tm->tm_mon+1;
+  t->wDay = tm->tm_mday;
+  t->wHour = tm->tm_hour;
+  t->wMinute = tm->tm_min;
+  t->wSecond = tm->tm_sec;
+  t->wMilliseconds = t->ts.tv_nsec/1000;
 }
+#endif
 
-void cvSaveImageSub(const char path[256],const IplImage *ImageBuf,INT nSizeX,INT nSizeY,int nCaptured){
+void cvSaveImageSub(const char path[256],const IplImage *ImageBuf,INT nSizeX,INT nSizeY,int nCaptured)
+{
 	IplImage *view;
 	char fnamebuff[256];
 
+#ifdef _WIN32
 	sprintf(fnamebuff,"%s\\%04d.png",path, nCaptured);
+#else
+	sprintf(fnamebuff,"%s/%04d.png",path, nCaptured);
+#endif
 	view = cvCreateImage( cvSize(ImageBuf->width/2,ImageBuf->height/2),IPL_DEPTH_8U, 3);
 	cvResize(ImageBuf,view,CV_INTER_NN);
 	cvSaveImage(fnamebuff,view);
 	cvReleaseImage(&view);
 }
+
+
+void MKDIR( char *path )
+{
+#ifdef _WIN32
+	mkdir(path);
+#else
+	mkdir(path,S_IRUSR | S_IWUSR | S_IXUSR |         /* rwx */
+               S_IRGRP | S_IWGRP | S_IXGRP |         /* rwx */
+	      S_IROTH | S_IXOTH | S_IXOTH);
+#endif
+}
+
 
 int main(int argc, char * argv[])
 {
@@ -60,7 +96,6 @@ int main(int argc, char * argv[])
 	IplImage	*show_view,*show_view2;
 	time_t		ti, ti2;
 	int			nCaptured = 0;
-	//int			timelist[30*60*20];//max: 30*60*20frame 
 	int			ndev = 1, dev1 = 0, dev2 = 1;		// device number
 	struct tm	*lt;
 	char		path[256], fname[256];
@@ -109,11 +144,11 @@ int main(int argc, char * argv[])
     cv::Mat input_image;
     cv::namedWindow("cap1",1);
 
-	printf("Stop [ESC], Start capture = space\n");
+    printf("Stop [ESC], Start capture = space\n");
 
     for(;;)
     {
-		cv::Mat frame1, frame2, frame3;
+	cv::Mat frame1, frame2, frame3;
         cap1 >> frame1;
 
 //		frame3 = cv::Mat(cv::Size(frame1.cols + frame2.cols,frame1.rows),frame1.type());
@@ -124,13 +159,12 @@ int main(int argc, char * argv[])
 //		frame2.copyTo(roi);
 
         imshow("cap1", frame1);
-		
 
-		char k = cv::waitKey(10);
-		if( k == 0x1b )
-			goto EXIT;
-		if( k == ' ' )
-			break;
+	char k = cv::waitKey(10);
+	if( k == 0x1b )
+	  exit(1);
+	if( k == ' ' )
+		break;
     }
 
 	printf("now start to capture. [ESC] to quit. \n");
@@ -139,14 +173,22 @@ int main(int argc, char * argv[])
 	lt = localtime(&ti);
 
 	// create directory
-	sprintf(path,"PupilLabsData\\%02d%02d_%02d%02d%02d", lt->tm_mon+1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
-	mkdir(path);
+	MKDIR("PupilLabsData");
+	sprintf(path,"PupilLabsData/%02d%02d_%02d%02d%02d", 
+		lt->tm_mon+1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
+	MKDIR(path);
+
 	//make time file
 	char fname_tx[256];
 	FILE *outputfilex;
 	int Twrote = 0;
 	int Written = 0;
+
+#ifdef _WIN32
 	sprintf(fname_tx, "%s\\timex.csv", path);
+#else
+	sprintf(fname_tx, "%s/timex.csv", path);
+#endif
 	outputfilex = fopen(fname_tx, "w");
 	if (outputfilex == NULL){
 		printf("cannot make time.csv\n");
@@ -180,16 +222,17 @@ int main(int argc, char * argv[])
 
 			if (((nCaptured + 1) % 1000) == 0){
 				for (int i = 0; i < 1000; i++){
-					fprintf_s(outputfilex, "%d,%02d%02d%02d%02d%02d%04d\n", Written, shoot_timelist[i].wMonth, shoot_timelist[i].wDay, shoot_timelist[i].wHour, shoot_timelist[i].wMinute, shoot_timelist[i].wSecond, shoot_timelist[i].wMilliseconds);
+#ifdef _WIN32
+	fprintf_s(outputfilex, "%d,%02d%02d%02d%02d%02d%04d\n", Written, shoot_timelist[i].wMonth, shoot_timelist[i].wDay, shoot_timelist[i].wHour, shoot_timelist[i].wMinute, shoot_timelist[i].wSecond, shoot_timelist[i].wMilliseconds);
+#else
+	fprintf(outputfilex, "%d,%02d%02d%02d%02d%02d%04d\n", Written, shoot_timelist[i].wMonth, shoot_timelist[i].wDay, shoot_timelist[i].wHour, shoot_timelist[i].wMinute, shoot_timelist[i].wSecond, shoot_timelist[i].wMilliseconds);
+#endif					
 					Written = Written + 1;
 				}
 				Twrote = 0;
 			}
 
 			thr_grp.create_thread(boost::bind(&cvSaveImageSub,path,&imbuf[nbuf],0,0,nCaptured));//save thread create
-			
-			//fTime = timeGetTime();
-			//timelist[nCaptured] = (int)(fTime- sTime);
 			nCaptured++;
 
 			// show image for every 4 frms
@@ -212,7 +255,11 @@ int main(int argc, char * argv[])
 	//画像の取得時刻(ms)をファイルに出力
 	if (Twrote != 0){
 		for (int i = 0; i < Twrote; i++){
+#ifdef _WIN32
 			fprintf_s(outputfilex, "%d,%02d%02d%02d%02d%02d%04d\n", Written, shoot_timelist[i].wMonth, shoot_timelist[i].wDay, shoot_timelist[i].wHour, shoot_timelist[i].wMinute, shoot_timelist[i].wSecond, shoot_timelist[i].wMilliseconds);
+#else
+		        fprintf(outputfilex, "%d,%02d%02d%02d%02d%02d%04d\n", Written, shoot_timelist[i].wMonth, shoot_timelist[i].wDay, shoot_timelist[i].wHour, shoot_timelist[i].wMinute, shoot_timelist[i].wSecond, shoot_timelist[i].wMilliseconds);
+#endif
 			Written = Written + 1;
 		}
 	}
@@ -233,6 +280,4 @@ int main(int argc, char * argv[])
 	fclose(outputfile);
 	*/
 
-EXIT:
-	;
 }
