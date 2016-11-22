@@ -1,2 +1,0 @@
-pupilLabCapture: pupilLabCapture.cpp
-	g++ -o pupilLabCapure pupilLabCapture-linux.cpp -std=c++11 -I/usr/include/ 
